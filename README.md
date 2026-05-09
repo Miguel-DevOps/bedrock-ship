@@ -2,9 +2,9 @@
 
 <img src="docs/assets/logo.png" width="180" alt="Bedrock Ship Logo Made By Developmi" />
 
-# Bedrock Ship — WordPress, Production-Ready | Developmi
+# Bedrock Ship - WordPress, Production Ready | Developmi
 
-*Secure, modern WordPress boilerplate in a single Docker image — clone, build, deploy in minutes.*
+*Secure, modern WordPress boilerplate in a single Docker image - clone, build, deploy in minutes.*
 
 ![PHP](https://img.shields.io/badge/PHP_8.3-777BB4?style=for-the-badge&logo=php&logoColor=white)
 ![FrankenPHP](https://img.shields.io/badge/FrankenPHP-FFD93C?style=for-the-badge&logo=caddy&logoColor=black)
@@ -36,11 +36,11 @@
 
 ## 🎯 Overview
 
-A **production-ready Docker image** of [Bedrock](https://roots.io/bedrock/) — the modern, secure WordPress boilerplate by [Roots.io](https://roots.io/) — served by [FrankenPHP](https://frankenphp.dev).
+A **production-ready Docker image** of [Bedrock](https://roots.io/bedrock/) - the modern, secure WordPress boilerplate by [Roots.io](https://roots.io/) - served by [FrankenPHP](https://frankenphp.dev).
 
 It includes **Acorn**, the Laravel integration layer for WordPress, so you get Blade templates, service containers, and all the Laravel goodies right out of the box.
 
-**This is NOT the standard (insecure) WordPress image.** Bedrock moves WordPress core out of the web root, manages plugins/themes via Composer, and stores secrets in environment variables — the way modern applications should.
+**This is NOT the standard (insecure) WordPress image.** Bedrock moves WordPress core out of the web root, manages plugins/themes via Composer, and stores secrets in environment variables - the way modern applications should.
 
 ---
 
@@ -50,7 +50,7 @@ It includes **Acorn**, the Laravel integration layer for WordPress, so you get B
 |-------|------------|
 | **Server** | [FrankenPHP](https://frankenphp.dev) (Go + PHP 8.3, Caddy, HTTP/3-ready) |
 | **WordPress** | Bedrock structure ([Roots.io](https://roots.io/bedrock/)) |
-| **Framework** | [Acorn 6.x](https://roots.io/acorn/) — Laravel in WordPress |
+| **Framework** | [Acorn 6.x](https://roots.io/acorn/) - Laravel in WordPress |
 | **Build** | Docker multi-stage (< 150 MB final image) |
 | **Security** | Rootless container (www-data), port 8080, OPcache, env-based config |
 
@@ -70,7 +70,7 @@ git clone https://github.com/Miguel-DevOps/bedrock-ship.git && cd bedrock-ship
 
 # 2. Configure your environment
 cp .env.example .env
-# Edit .env — set MARIADB_ROOT_PASSWORD and DATABASE_URL at minimum
+# Edit .env - set MARIADB_ROOT_PASSWORD and DATABASE_URL at minimum
 
 # 3. Start everything
 docker compose up -d
@@ -180,7 +180,7 @@ Then extend the `Dockerfile` with a Node.js build stage for asset compilation.
 | `WP_HOME` | Yes | Site URL (e.g. `https://mysite.com`) |
 | `WP_SITEURL` | Yes | WordPress URL (e.g. `https://mysite.com/wp`) |
 | `WP_ENV` | No | `development`, `staging`, `production` (default) |
-| `AUTH_KEY` — `NONCE_SALT` | Yes | WordPress salts (8 variables) |
+| `AUTH_KEY` - `NONCE_SALT` | Yes | WordPress salts (8 variables) |
 
 See `.env.example` for the complete reference.
 
@@ -206,8 +206,8 @@ See [SECURITY.md](./SECURITY.md) for reporting instructions and response timelin
 
 This project orchestrates and dockerizes the incredible work of:
 
-- **[Roots.io](https://roots.io)** — Bedrock, Acorn, and the modern WordPress ecosystem
-- **[FrankenPHP](https://frankenphp.dev)** — Kévin Dunglas & contributors
+- **[Roots.io](https://roots.io)** - Bedrock, Acorn, and the modern WordPress ecosystem
+- **[FrankenPHP](https://frankenphp.dev)** - Kévin Dunglas & contributors
 
 ---
 
