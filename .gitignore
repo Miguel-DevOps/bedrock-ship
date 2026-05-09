@@ -1,0 +1,64 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Composer (PHP)
+vendor/
+web/wp/
+
+# WordPress content — installed by Composer, never commit
+web/app/mu-plugins/
+web/app/plugins/
+web/app/themes/
+
+# WordPress runtime — user-generated at runtime, never commit
+web/app/cache/
+web/app/uploads/
+web/app/languages/
+web/app/upgrade/
+web/app/wflogs/
+web/app/ai1wm-backups/
+
+# WordPress auto-generated files
+.web.config
+.htaccess
+.maintenance
+.user.ini
+
+# Backups / data dumps
+backups/
+*.sql
+*.sql.gz
+*.dump
+
+# Logs and OS
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
+# Secrets / keys / certs
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.kubeconfig
+id_rsa
+id_ed25519
+.ssh/
+.envrc
+
+# IDE
+.idea/
+.vscode/
+
+# PHP testing
+.phpunit.result.cache
+.pest-cache
+
+# Supply chain security (generated artifacts — never committed)
+cosign.key
+sbom.*.json
+*.attestation

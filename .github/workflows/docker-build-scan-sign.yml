@@ -1,0 +1,171 @@
+name: Build, scan, sign, and push
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: miguel-devops/bedrock-ship
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write       # keyless Cosign (OIDC) + SLSA provenance
+  attestations: write   # SBOM attestation
+
+jobs:
+  build-scan-sign:
+    runs-on: [self-hosted, Linux, X64]
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        target:
+          - dockerfile: Dockerfile
+            suffix: core
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25  # v3.4.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca  # v3.9.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772  # v3.4.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags and labels)
+        id: meta
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804  # v5.7.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=-${{ matrix.target.suffix }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=sha-
+
+      # ── Compute the full image reference for this target ──
+      - name: Compute image reference
+        id: image-ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            IMG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.target.suffix }}"
+            echo "full=${IMG}:pr-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            echo "local=${IMG}:scan-pr-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            IMG="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+            echo "full=${IMG}:${{ steps.meta.outputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "local=${IMG}:scan-${{ steps.meta.outputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── Pull Request: build multi-arch, push to registry ──
+      - name: Build and push image (PR — multi-platform)
+        if: github.event_name == 'pull_request'
+        id: build-pr
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4  # v6.15.0
+        with:
+          context: .
+          file: ${{ matrix.target.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image-ref.outputs.full }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ── Build single-platform locally for Trivy scan ──
+      - name: Build image locally for scanning
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4  # v6.15.0
+        with:
+          context: .
+          file: ${{ matrix.target.dockerfile }}
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.image-ref.outputs.local }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy
+        timeout-minutes: 10
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8  # v0.30.0
+        with:
+          image-ref: ${{ steps.image-ref.outputs.local }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      # ── Push: build multi-arch, push to registry ──
+      - name: Build and push image (multi-platform)
+        if: github.event_name != 'pull_request'
+        id: build-push
+        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4  # v6.15.0
+        with:
+          context: .
+          file: ${{ matrix.target.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          sbom: true
+          provenance: true
+
+      - name: Generate SBOM with Syft
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@df80a981bc6edbc4e220a492d3cbe9f5547a6e75  # v0.17.9
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+          format: spdx-json
+          output-file: sbom-${{ matrix.target.suffix }}.spdx.json
+
+      # ── Cosign must be pre-installed on the self-hosted runner ──
+      - name: Verify Cosign installation
+        if: github.event_name != 'pull_request'
+        run: cosign version
+
+      # ── Keyless signing via Sigstore OIDC (public repo) ──
+      - name: Sign image (keyless — OIDC)
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign sign --yes \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}
+
+      - name: Attach SBOM attestation
+        if: github.event_name != 'pull_request'
+        run: |
+          cosign attest --yes \
+            --predicate sbom-${{ matrix.target.suffix }}.spdx.json \
+            --type spdxjson \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}
+
+      # ── Verification instructions for consumers ──
+      - name: Print verification command
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "✅ Image signed and attested."
+          echo ""
+          echo "Verify with:"
+          echo "  cosign verify \\"
+          echo "    --certificate-identity \"https://github.com/Miguel-DevOps/bedrock-ship/.github/workflows/docker-build-scan-sign.yml@refs/heads/main\" \\"
+          echo "    --certificate-oidc-issuer \"https://token.actions.githubusercontent.com\" \\"
+          echo "    ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"

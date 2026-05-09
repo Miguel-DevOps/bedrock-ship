@@ -1,0 +1,39 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "docker": {
+    "pinDigests": true
+  },
+  "schedule": ["before 08:00 on monday"],
+  "timezone": "America/Mexico_City",
+  "packageRules": [
+    {
+      "description": "Group Dockerfile base image digest bumps into a single PR",
+      "matchFileNames": ["Dockerfile"],
+      "groupName": "Docker base image digest bumps",
+      "automerge": false
+    }
+  ],
+  "regexManagers": [
+    {
+      "description": "Pin digests in COPY --from directives (e.g. COPY --from=wordpress:cli-php8.3@sha256:...)",
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "COPY --from=(?<depName>[^:]+):(?<currentValue>[^@]+)@sha256:(?<currentDigest>[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker",
+      "autoReplaceStringTemplate": "COPY --from={{depName}}:{{newValue}}@{{newDigest}}"
+    },
+    {
+      "description": "Pin digests in composer Dockerfile base images",
+      "fileMatch": ["^Dockerfile$"],
+      "matchStrings": [
+        "FROM (?<depName>[^:]+):(?<currentValue>[^@]+)@sha256:(?<currentDigest>[a-f0-9]+)"
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker",
+      "autoReplaceStringTemplate": "FROM {{depName}}:{{newValue}}@{{newDigest}}"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment (keep .env.example as template)
+.env
+.env.*
+!.env.example
+
+# Docker / Compose
+docker-compose*.yml
+Dockerfile*
+
+# Scripts — not needed at runtime
+scripts/
+
+# Docs
+*.md
+LICENSE.md
+docs/
+
+# Logs and OS
+*.log
+.DS_Store
+
+# Composer dependencies — installed fresh in Stage 1
+vendor/
+
+# WordPress core — installed by Composer
+web/wp/
+
+# WordPress content — installed by Composer, built fresh in Stage 1
+web/app/themes/
+web/app/plugins/
+web/app/mu-plugins/
+
+# Runtime state — must be volumes at deploy time
+web/app/uploads/
+web/app/cache/
+web/app/languages/
+web/app/upgrade/
+web/app/wflogs/
+web/app/ai1wm-backups/
+
+# Dev tools
+.php-cs-fixer.php
+phpcs.xml
+pint.json
+
+# Tests
+tests/
+test/
+
+# IDE
+.idea/
+.vscode/
+
+# Secrets / keys / certs
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.kubeconfig
+id_rsa
+id_ed25519
+.ssh/
+.envrc
+
+# Backups
+backups/
+*.sql
+*.sql.gz
+*.dump
+
+# Supply chain security (generated — never in image)
+cosign.key
+*.attestation
+sbom.*.json
